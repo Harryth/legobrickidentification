@@ -21,3 +21,7 @@ FORMS    += mainwindow.ui
 
 RESOURCES += \
     rsrcfl.qrc
+
+CONFIG   += link_pkgconfig
+
+PKGCONFIG += opencv
