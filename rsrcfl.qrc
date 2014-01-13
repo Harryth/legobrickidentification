@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/icons">
         <file>icons/opencv-logo.png</file>
+        <file>icons/document-open.svg</file>
     </qresource>
 </RCC>
