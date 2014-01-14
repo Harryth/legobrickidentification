@@ -3,8 +3,10 @@
 
 #include <QMainWindow>
 #include <QFileDialog>
+#include <QLabel>
+#include <QDebug>
 
-#include <opencv2/core/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
 namespace Ui {
@@ -26,10 +28,15 @@ private slots:
 private:
     Ui::MainWindow *ui;
 
+    void closeEvent(QCloseEvent *event);
+    void resizeEvent(QResizeEvent *event);
+
     QString location; // Store the last location in which an image was opened
     QString imgName; // Loaded image name to show in the window title
 
     cv::Mat image; // Store the image
+
+    void imgShow(cv::Mat img); // Show image in GUI
 };
 
 #endif // MAINWINDOW_H
