@@ -31,6 +31,7 @@ public:
 private slots:
     // Function that load an image opening a file dialog asking for image location
     void openImage();
+    void saveImage();
     void opencvHelp();
 
 private:

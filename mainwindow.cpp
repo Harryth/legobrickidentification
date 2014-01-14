@@ -10,6 +10,7 @@ MainWindow::MainWindow(QWidget *parent) :
     // Connect ui actions with slots
     connect(ui->actionopen_image,SIGNAL(triggered()),this,SLOT(openImage()));
     connect(ui->actionOpenCV_Help,SIGNAL(triggered()),this,SLOT(opencvHelp()));
+    connect(ui->actionSave_Image,SIGNAL(triggered()),this,SLOT(saveImage()));
     connect(ui->actionExit,SIGNAL(triggered()),this,SLOT(close()));
 
     // Default location to open images
@@ -53,6 +54,8 @@ void MainWindow::openImage()
 
             image = cv::Mat(tmp,cv::Rect(x,y,w,h));
             imgShow(image);
+
+            ui->actionSave_Image->setEnabled(true);
         }
 }
 
@@ -161,4 +164,38 @@ void MainWindow::opencvHelp()
     // Append the search text to the url
     searchText->append(searchLine->displayText()).append("&check_keywords=yes&area=default");
     QDesktopServices::openUrl(QUrl(*searchText)); // Exec the search oppening the default browser
+}
+
+void MainWindow::saveImage()
+{
+    if(!image.empty())
+    {
+        // Open file dialog
+        QString dstFileName = QFileDialog::getSaveFileName(this,"Guardar Imagen","../../Imágenes/",
+                                                           tr("Archivos de Imagen (*.jpg *.jpeg *.png *.bmp)"));
+        // Suported extensions
+        QString fileType = ".jpg|.jpeg|.png|.bmp";
+        bool ext;
+
+        // Search file extension in destination file name
+        for(int i = 0; i < fileType.split("|").count(); i++)
+        {
+            ext |= dstFileName.endsWith(fileType.split("|").at(i));
+        }
+
+        // If not extension append png
+        if(!ext)
+            dstFileName.append(".png");
+
+        // Saves image
+        cv::imwrite(dstFileName.toStdString(),image);
+    }
+    else
+    {
+        QMessageBox *msgBox = new QMessageBox(this);
+        msgBox->setText("Error: no se ha cargado ninguna imagen.");
+        msgBox->setWindowTitle("Error al guardar");
+        msgBox->setButtonText(QMessageBox::Ok,tr("Aceptar"));
+        msgBox->exec();
+    }
 }

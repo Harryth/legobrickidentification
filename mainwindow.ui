@@ -38,6 +38,7 @@
      <string>&amp;Archivo</string>
     </property>
     <addaction name="actionopen_image"/>
+    <addaction name="actionSave_Image"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
@@ -64,7 +65,7 @@
      <normaloff>:/icons/icons/document-open.svg</normaloff>:/icons/icons/document-open.svg</iconset>
    </property>
    <property name="text">
-    <string>Abrir Imágen</string>
+    <string>Abrir Imagen</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+O</string>
@@ -85,10 +86,25 @@
      <normaloff>:/icons/icons/application-exit.svg</normaloff>:/icons/icons/application-exit.svg</iconset>
    </property>
    <property name="text">
-    <string>Salir</string>
+    <string>&amp;Salir</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="actionSave_Image">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="rsrcfl.qrc">
+     <normaloff>:/icons/icons/document-save.svg</normaloff>:/icons/icons/document-save.svg</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Guardar Imagen</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
    </property>
   </action>
  </widget>
