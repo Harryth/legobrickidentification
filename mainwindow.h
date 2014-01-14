@@ -5,6 +5,13 @@
 #include <QFileDialog>
 #include <QLabel>
 #include <QDebug>
+#include <QMessageBox>
+#include <QFormLayout>
+#include <QBoxLayout>
+#include <QPushButton>
+#include <QLineEdit>
+#include <QDesktopServices>
+#include <QUrl>
 
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -24,6 +31,7 @@ public:
 private slots:
     // Function that load an image opening a file dialog asking for image location
     void openImage();
+    void opencvHelp();
 
 private:
     Ui::MainWindow *ui;

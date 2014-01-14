@@ -9,6 +9,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // Connect ui actions with slots
     connect(ui->actionopen_image,SIGNAL(triggered()),this,SLOT(openImage()));
+    connect(ui->actionOpenCV_Help,SIGNAL(triggered()),this,SLOT(opencvHelp()));
 
     // Default location to open images
     location = "../../Imágenes";
@@ -122,4 +123,41 @@ void MainWindow::resizeEvent(QResizeEvent *event)
     // If a resize evente, show image
     imgShow(image);
     QWidget::resizeEvent(event);
+}
+
+void MainWindow::opencvHelp()
+{
+    QDialog *helpDialog = new QDialog(this); // QDialog to display searh box
+    QLabel *text = new QLabel(tr("Introdusca el término de búsqueda en la \ndocumentación de OpenCV")); // Text in the dialog
+    QLineEdit *searchLine = new QLineEdit(); // Line to introduce text
+    QPushButton *searchBtn = new QPushButton(tr("Buscar")); // Search button
+    QFormLayout *formLayout = new QFormLayout; // Forma layout to the search line and the search button
+    QVBoxLayout *vertLayout = new QVBoxLayout; // Vertical layout for the form layout and the text label
+    QString *searchText = new QString("http://docs.opencv.org/search.html?q="); // String to searh in OpenCV documentation
+
+    helpDialog->setWindowTitle(tr("Búsqueda en OpenCV")); // Dialog title
+
+    // Search line and text width
+    searchLine->setFixedWidth(170);
+    text->setFixedWidth(250);
+
+    // Layout the search line and the search button in a row
+    formLayout->addRow(searchLine,searchBtn);
+
+    // Layout the text label and the form layout
+    vertLayout->addWidget(text);
+    vertLayout->addLayout(formLayout);
+
+    // Set the dialog layout
+    helpDialog->setLayout(vertLayout);
+
+    // Connect the search button signal to the close slot to close the dialog at button press
+    connect(searchBtn,SIGNAL(clicked()),helpDialog,SLOT(close()));
+
+    // Exec search dialog
+    helpDialog->exec();
+
+    // Append the search text to the url
+    searchText->append(searchLine->displayText()).append("&check_keywords=yes&area=default");
+    QDesktopServices::openUrl(QUrl(*searchText)); // Exec the search oppening the default browser
 }
