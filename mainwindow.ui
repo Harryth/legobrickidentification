@@ -38,6 +38,7 @@
      <string>&amp;Archivo</string>
     </property>
     <addaction name="actionopen_image"/>
+    <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -70,8 +71,24 @@
    </property>
   </action>
   <action name="actionOpenCV_Help">
+   <property name="icon">
+    <iconset resource="rsrcfl.qrc">
+     <normaloff>:/icons/icons/edit-find.svg</normaloff>:/icons/icons/edit-find.svg</iconset>
+   </property>
    <property name="text">
     <string>OpenCV</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="icon">
+    <iconset resource="rsrcfl.qrc">
+     <normaloff>:/icons/icons/application-exit.svg</normaloff>:/icons/icons/application-exit.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Salir</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
    </property>
   </action>
  </widget>

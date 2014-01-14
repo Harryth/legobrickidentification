@@ -10,6 +10,7 @@ MainWindow::MainWindow(QWidget *parent) :
     // Connect ui actions with slots
     connect(ui->actionopen_image,SIGNAL(triggered()),this,SLOT(openImage()));
     connect(ui->actionOpenCV_Help,SIGNAL(triggered()),this,SLOT(opencvHelp()));
+    connect(ui->actionExit,SIGNAL(triggered()),this,SLOT(close()));
 
     // Default location to open images
     location = "../../Imágenes";
