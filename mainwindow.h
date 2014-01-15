@@ -12,6 +12,7 @@
 #include <QLineEdit>
 #include <QDesktopServices>
 #include <QUrl>
+#include <QtSql/QtSql>
 
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -29,10 +30,9 @@ public:
     ~MainWindow();
 
 private slots:
-    // Function that load an image opening a file dialog asking for image location
-    void openImage();
-    void saveImage();
-    void opencvHelp();
+    void openImage(); // Function that load an image opening a file dialog asking for image location
+    void saveImage(); // Function that save an image opening a file dialog asking for image location
+    void opencvHelp(); // Function that open a dialog to search in opencv documentation
 
 private:
     Ui::MainWindow *ui;
@@ -42,10 +42,15 @@ private:
 
     QString location; // Store the last location in which an image was opened
     QString imgName; // Loaded image name to show in the window title
+    std::vector<QString> dbNames; // Store database names
+    QSqlDatabase db; // Database handler
 
     cv::Mat image; // Store the image
 
     void imgShow(cv::Mat img); // Show image in GUI
+    void loadDataBaseValues(std::vector<std::vector<cv::Point2f> > &values); // Load values from a data base
+    void labelsTrainData(cv::Mat &trainData, cv::Mat &labels); // Calculate train data and assign labels to each class
+
 };
 
 #endif // MAINWINDOW_H

@@ -199,3 +199,103 @@ void MainWindow::saveImage()
         msgBox->exec();
     }
 }
+
+void MainWindow::loadDataBaseValues(std::vector<std::vector<cv::Point2f> > &values)
+{
+    std::vector<cv::Point2f> classValues;  // Vector to store each class values
+
+    // Message dialog asking for a new database
+    QMessageBox *msgBox = new QMessageBox;
+    msgBox->setText("Desea Añadir otra base de datos?.");
+    msgBox->setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+    msgBox->setButtonText(QMessageBox::Ok, tr("Si"));
+    msgBox->setButtonText(QMessageBox::Cancel, tr("No"));
+    msgBox->setWindowTitle("Añadir Base de Datos");
+
+    do
+    {
+        while(!db.isOpen())
+        {
+            QString dbFileName = QFileDialog::getOpenFileName(this, tr("Abrir Base de Datos"), "../../Bases de Datos/",
+                                                              tr("Base de Datos (*.db)"));
+
+            if(!dbFileName.isEmpty())
+            {
+                db = QSqlDatabase::addDatabase("QSQLITE");
+                db.setDatabaseName(dbFileName);
+
+                QString title("Identificación Bloques LEGO - ");
+                QString dbName = dbFileName.section("/",-1);
+                title.append(dbName);
+                this->setWindowTitle(title);
+
+                dbName.chop(3);
+                dbNames.push_back(dbName);
+
+                if(!db.open())
+                {
+                    QMessageBox *errorMsgBox = new QMessageBox;
+                    errorMsgBox->critical(this,tr("Error en la base dedatos"),tr("La base de datos no pudo abrirse"));
+                }
+            }
+            else
+                break;
+        }
+
+        int w,h;
+
+        if(db.isOpen())
+        {
+            QSqlQuery query;
+
+            query.exec("SELECT charid,value FROM characteristics");
+            qDebug() << query.lastError();
+
+            while(query.next())
+            {
+                if(query.value(0).toInt() == 1)
+                    w = query.value(1).toFloat();
+                else if(query.value(0).toInt() == 2)
+                {
+                    h = query.value(1).toFloat();
+                    classValues.push_back(cv::Point2f(w,h));
+                }
+            }
+
+            values.push_back(classValues);
+            classValues.clear();
+        }
+
+        QString conn;
+        conn = db.connectionName();
+        db.close();
+        db = QSqlDatabase();
+        db.removeDatabase(conn);
+
+    }while(msgBox->exec() == QMessageBox::Ok);
+}
+
+void MainWindow::labelsTrainData(cv::Mat &trainData, cv::Mat &labels)
+{
+    std::vector < std::vector<cv::Point2f> > values; // Vector of vector that stores the values read from databases
+
+    loadDataBaseValues(values);  // Load values
+
+    int nData = 0; //Number of data
+
+    for(unsigned int i = 0; i < values.size(); i++) // Calculate number total data
+        nData += values[i].size();
+
+    trainData = cv::Mat(nData,2,CV_32FC1); // 2 cols, 2 characteristics
+    labels = cv::Mat(nData,1,CV_32FC1); // 1 col labels
+
+    int r = 0;
+
+    for(unsigned int i = 0; i < values.size(); i++)
+        for(unsigned j = 0; j < values[i].size(); j++)
+        {
+            trainData.at<float>(r,0) = values[i][j].x;
+            trainData.at<float>(r,1) = values[i][j].y;
+            labels.at<float>(r++,0) = i;
+        }
+}
