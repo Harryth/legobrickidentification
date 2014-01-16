@@ -14,8 +14,11 @@
 #include <QUrl>
 #include <QtSql/QtSql>
 
+#include <math.h>
+
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/ml/ml.hpp>
 
 namespace Ui {
 class MainWindow;
@@ -33,6 +36,8 @@ private slots:
     void openImage(); // Function that load an image opening a file dialog asking for image location
     void saveImage(); // Function that save an image opening a file dialog asking for image location
     void opencvHelp(); // Function that open a dialog to search in opencv documentation
+    void trainIdentifier(); // Train the identifier
+    void identifyImage(); // Identify image
 
 private:
     Ui::MainWindow *ui;
@@ -45,7 +50,9 @@ private:
     std::vector<QString> dbNames; // Store database names
     QSqlDatabase db; // Database handler
 
-    cv::Mat image; // Store the image
+    cv::Mat image; // Store the image that is processed
+    cv::Mat orgImage; // Original image
+    cv::NormalBayesClassifier bayes; // Bayes classifier
 
     void imgShow(cv::Mat img); // Show image in GUI
     void loadDataBaseValues(std::vector<std::vector<cv::Point2f> > &values); // Load values from a data base

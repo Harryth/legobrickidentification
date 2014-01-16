@@ -12,6 +12,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionOpenCV_Help,SIGNAL(triggered()),this,SLOT(opencvHelp()));
     connect(ui->actionSave_Image,SIGNAL(triggered()),this,SLOT(saveImage()));
     connect(ui->actionExit,SIGNAL(triggered()),this,SLOT(close()));
+    connect(ui->action_Train_Identifier,SIGNAL(triggered()),this,SLOT(trainIdentifier()));
+    connect(ui->actionIdentify_Image,SIGNAL(triggered()),this,SLOT(identifyImage()));
 
     // Default location to open images
     location = "../../Imágenes";
@@ -44,18 +46,12 @@ void MainWindow::openImage()
 
             this->setWindowTitle(title);
 
-            // Read image from file, stores it in tmp and chop it to reduce noise in image corners
-            cv::Mat tmp = cv::imread(fileName.toStdString());;
-            int x,y,w,h; // Cropped image coordinates, width and height
-            w = tmp.cols*0.8;
-            h = tmp.rows*0.9;
-            x = (tmp.cols - w) / 2;
-            y = (tmp.rows - h) / 2;
-
-            image = cv::Mat(tmp,cv::Rect(x,y,w,h));
+            image = cv::imread(fileName.toStdString());
+            image.copyTo(orgImage);
             imgShow(image);
 
             ui->actionSave_Image->setEnabled(true);
+            ui->actionIdentify_Image->setEnabled(true);
         }
 }
 
@@ -216,14 +212,17 @@ void MainWindow::loadDataBaseValues(std::vector<std::vector<cv::Point2f> > &valu
     {
         while(!db.isOpen())
         {
+            // Open file dialog to ask for db location
             QString dbFileName = QFileDialog::getOpenFileName(this, tr("Abrir Base de Datos"), "../../Bases de Datos/",
                                                               tr("Base de Datos (*.db)"));
 
             if(!dbFileName.isEmpty())
             {
+                // Create a new database
                 db = QSqlDatabase::addDatabase("QSQLITE");
                 db.setDatabaseName(dbFileName);
 
+                // Stores the data base name and shows it in the main window title
                 QString title("Identificación Bloques LEGO - ");
                 QString dbName = dbFileName.section("/",-1);
                 title.append(dbName);
@@ -234,6 +233,7 @@ void MainWindow::loadDataBaseValues(std::vector<std::vector<cv::Point2f> > &valu
 
                 if(!db.open())
                 {
+                    // Error message in case db not loades
                     QMessageBox *errorMsgBox = new QMessageBox;
                     errorMsgBox->critical(this,tr("Error en la base dedatos"),tr("La base de datos no pudo abrirse"));
                 }
@@ -242,30 +242,33 @@ void MainWindow::loadDataBaseValues(std::vector<std::vector<cv::Point2f> > &valu
                 break;
         }
 
-        int w,h;
+        // Stores the values of each point
+        float w,h;
 
         if(db.isOpen())
         {
+            // Creates a querry to read values from database
             QSqlQuery query;
-
             query.exec("SELECT charid,value FROM characteristics");
-            qDebug() << query.lastError();
 
             while(query.next())
             {
+                // Depending the caracteristic id stores the value in w or h
                 if(query.value(0).toInt() == 1)
                     w = query.value(1).toFloat();
                 else if(query.value(0).toInt() == 2)
                 {
                     h = query.value(1).toFloat();
-                    classValues.push_back(cv::Point2f(w,h));
+                    classValues.push_back(cv::Point2f(w,h)); // Stores w and h in the vector of points
                 }
             }
 
+            // Stores the vector of point in a vector
             values.push_back(classValues);
-            classValues.clear();
+            classValues.clear(); // Clear the vector of points to recieve a new class
         }
 
+        // Destroy the connection
         QString conn;
         conn = db.connectionName();
         db.close();
@@ -298,4 +301,77 @@ void MainWindow::labelsTrainData(cv::Mat &trainData, cv::Mat &labels)
             trainData.at<float>(r,1) = values[i][j].y;
             labels.at<float>(r++,0) = i;
         }
+}
+
+void MainWindow::trainIdentifier()
+{
+    cv::Mat trainData;
+    cv::Mat labels;
+
+    labelsTrainData(trainData,labels);
+
+    bayes.clear();
+
+    if(!labels.empty() && labels.at<float>(labels.rows-1) != 0)
+        ui->actionIdentify_Image->setEnabled(bayes.train(trainData,labels));
+}
+
+void MainWindow::identifyImage()
+{
+    std::vector<cv::Mat> layers;  // Store image's color channels
+
+    cv::split(image,layers);  // Split image in each color channel because some bricks are better segmented in a different channel
+
+    //Compute filters to each channela an binarize them
+    for(int i = 0; i < 2; i++)
+    {
+        cv::blur(layers[i],layers[i],cv::Size(25,25));
+        cv::medianBlur(layers[i],layers[i],13);
+        cv::threshold(layers[i],layers[i],i?157:181,255,i);
+    }
+
+    // Combine the two channels in one
+    cv::bitwise_or(layers[0],layers[1],image);
+
+    // Morphology close operation to close some holes
+    cv::Mat strElmt = cv::getStructuringElement(cv::MORPH_RECT,cv::Size(5,5));
+    cv::morphologyEx(image,image,cv::MORPH_CLOSE,strElmt,cv::Point(-1,-1),5);
+
+    cv::Mat fg,bg; // Store the foreground and background
+
+    cv::erode(image,fg,cv::Mat(),cv::Point(-1,-1),3); // Erode to have a mark in each brick labeled as 255
+    cv::dilate(image,bg,cv::Mat(),cv::Point(-1,-1),70); // Dilate to have a mark in background
+    cv::threshold(bg,bg,1,128,cv::THRESH_BINARY_INV);  // Background mark labeled as 128
+
+    // Add the two marker images
+    cv::Mat markerImg(image.size(),CV_8U,cv::Scalar(0));
+    markerImg = fg + bg;
+
+    cv::Mat markers;
+
+    // Convert markers to integers
+    markerImg.convertTo(markers,CV_32S);
+
+    cv::watershed(orgImage,markers);  // Aply watershed to original image
+
+    markers.convertTo(image,CV_8U);
+
+    cv::threshold(image,image,128,255,cv::THRESH_BINARY); // Binarize image
+
+    std::vector< std::vector<cv::Point> > contours;
+    std::vector<cv::Vec4i> hierarchy;
+
+    // Find contours
+    cv::findContours(image,contours,hierarchy,cv::RETR_CCOMP,cv::CHAIN_APPROX_SIMPLE);
+
+    cv::Mat tmp(image.size(),CV_8UC3,cv::Scalar(0,0,0));
+    cv::RNG rng(12345);
+
+    for(unsigned int i = 0; i < contours.size(); i++)
+    {
+        cv::Scalar color(rng.uniform(0,255),rng.uniform(0,255),rng.uniform(0,255));
+        cv::drawContours(tmp,contours,i,color,2,8,hierarchy,0,cv::Point());
+    }
+
+    imgShow(tmp);
 }

@@ -47,7 +47,15 @@
     </property>
     <addaction name="actionOpenCV_Help"/>
    </widget>
+   <widget class="QMenu" name="menu_Identify">
+    <property name="title">
+     <string>&amp;Identificar</string>
+    </property>
+    <addaction name="action_Train_Identifier"/>
+    <addaction name="actionIdentify_Image"/>
+   </widget>
    <addaction name="menu_file"/>
+   <addaction name="menu_Identify"/>
    <addaction name="menuHelp"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
@@ -105,6 +113,22 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="action_Train_Identifier">
+   <property name="text">
+    <string>&amp;Entrenar Identifiador</string>
+   </property>
+  </action>
+  <action name="actionIdentify_Image">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Identificar Imagen</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+I</string>
    </property>
   </action>
  </widget>
