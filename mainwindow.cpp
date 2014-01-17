@@ -51,7 +51,7 @@ void MainWindow::openImage()
             imgShow(image);
 
             ui->actionSave_Image->setEnabled(true);
-            ui->actionIdentify_Image->setEnabled(true);
+            ui->actionIdentify_Image->setEnabled(bayesTrained);
         }
 }
 
@@ -61,7 +61,7 @@ void MainWindow::imgShow(cv::Mat img)
     if(img.empty())
         img = cv::Mat(512,512,CV_8UC3,cv::Scalar(231,231,232));
 
-    // Store central widget width and height
+    // Keeps central widget width and height
     int w = ui->centralWidget->size().width();
     int h = ui->centralWidget->size().height();
 
@@ -94,7 +94,7 @@ void MainWindow::imgShow(cv::Mat img)
 
         QLabel *imgLabel = new QLabel(ui->centralWidget); // Label where image will be shown, central widget as parent
 
-        QImage qImg;  // QImage that store the image
+        QImage qImg;  // QImage that Keeps the image
 
         if(tmp.channels() > 1)
         {
@@ -198,7 +198,7 @@ void MainWindow::saveImage()
 
 void MainWindow::loadDataBaseValues(std::vector<std::vector<cv::Point2f> > &values)
 {
-    std::vector<cv::Point2f> classValues;  // Vector to store each class values
+    std::vector<cv::Point2f> classValues;  // Vector to Keeps each class values
 
     // Message dialog asking for a new database
     QMessageBox *msgBox = new QMessageBox;
@@ -222,7 +222,7 @@ void MainWindow::loadDataBaseValues(std::vector<std::vector<cv::Point2f> > &valu
                 db = QSqlDatabase::addDatabase("QSQLITE");
                 db.setDatabaseName(dbFileName);
 
-                // Stores the data base name and shows it in the main window title
+                // keeps the data base name and shows it in the main window title
                 QString title("Identificación Bloques LEGO - ");
                 QString dbName = dbFileName.section("/",-1);
                 title.append(dbName);
@@ -242,7 +242,7 @@ void MainWindow::loadDataBaseValues(std::vector<std::vector<cv::Point2f> > &valu
                 break;
         }
 
-        // Stores the values of each point
+        // Keeps the values of each point
         float w,h;
 
         if(db.isOpen())
@@ -253,17 +253,17 @@ void MainWindow::loadDataBaseValues(std::vector<std::vector<cv::Point2f> > &valu
 
             while(query.next())
             {
-                // Depending the caracteristic id stores the value in w or h
+                // Depending the caracteristic id Keeps the value in w or h
                 if(query.value(0).toInt() == 1)
                     w = query.value(1).toFloat();
                 else if(query.value(0).toInt() == 2)
                 {
                     h = query.value(1).toFloat();
-                    classValues.push_back(cv::Point2f(w,h)); // Stores w and h in the vector of points
+                    classValues.push_back(cv::Point2f(w,h)); // Keeps w and h in the vector of points
                 }
             }
 
-            // Stores the vector of point in a vector
+            // Keeps the vector of point in a vector
             values.push_back(classValues);
             classValues.clear(); // Clear the vector of points to recieve a new class
         }
@@ -280,7 +280,7 @@ void MainWindow::loadDataBaseValues(std::vector<std::vector<cv::Point2f> > &valu
 
 void MainWindow::labelsTrainData(cv::Mat &trainData, cv::Mat &labels)
 {
-    std::vector < std::vector<cv::Point2f> > values; // Vector of vector that stores the values read from databases
+    std::vector < std::vector<cv::Point2f> > values; // Vector of vector that Keeps the values read from databases
 
     loadDataBaseValues(values);  // Load values
 
@@ -313,12 +313,13 @@ void MainWindow::trainIdentifier()
     bayes.clear();
 
     if(!labels.empty() && labels.at<float>(labels.rows-1) != 0)
-        ui->actionIdentify_Image->setEnabled(bayes.train(trainData,labels));
+        bayesTrained = bayes.train(trainData,labels);
+    ui->actionIdentify_Image->setEnabled(bayesTrained);
 }
 
 void MainWindow::identifyImage()
 {
-    std::vector<cv::Mat> layers;  // Store image's color channels
+    std::vector<cv::Mat> layers;  // Keeps image's color channels
 
     cv::split(image,layers);  // Split image in each color channel because some bricks are better segmented in a different channel
 
@@ -337,7 +338,7 @@ void MainWindow::identifyImage()
     cv::Mat strElmt = cv::getStructuringElement(cv::MORPH_RECT,cv::Size(5,5));
     cv::morphologyEx(image,image,cv::MORPH_CLOSE,strElmt,cv::Point(-1,-1),5);
 
-    cv::Mat fg,bg; // Store the foreground and background
+    cv::Mat fg,bg; // Keeps the foreground and background
 
     cv::erode(image,fg,cv::Mat(),cv::Point(-1,-1),3); // Erode to have a mark in each brick labeled as 255
     cv::dilate(image,bg,cv::Mat(),cv::Point(-1,-1),70); // Dilate to have a mark in background
@@ -358,20 +359,70 @@ void MainWindow::identifyImage()
 
     cv::threshold(image,image,128,255,cv::THRESH_BINARY); // Binarize image
 
+    // Keeps image contours
     std::vector< std::vector<cv::Point> > contours;
     std::vector<cv::Vec4i> hierarchy;
 
     // Find contours
     cv::findContours(image,contours,hierarchy,cv::RETR_CCOMP,cv::CHAIN_APPROX_SIMPLE);
 
-    cv::Mat tmp(image.size(),CV_8UC3,cv::Scalar(0,0,0));
+    // Keeps min area rects
+    std::vector<cv::RotatedRect> minRects;
+    std::vector<float> tmpValues; // Keeps temporary values of width and height to be kept in a cv Mat
+    std::vector<float> ids; // Keeps labels of classes predicted
+    float w,h,temp; // Temporary keep the width and height values of the min area rect
+    cv::Mat* samples; // Keeps the samble width and height to be predicted by the classifier
+
+    cv::Mat tmp(image.size(),CV_8UC3,cv::Scalar(0,0,0));  // Temporary mat to the drawings
     cv::RNG rng(12345);
+    cv::Point2f rect_points[4]; // Keeps the points of the min area rects
 
     for(unsigned int i = 0; i < contours.size(); i++)
     {
+        // Calculate the minumun area rectangle
+        minRects.push_back(cv::minAreaRect(contours[i]));
+        // Keeps the width and the height of the min area rect
+        w = minRects[i].size.width;
+        h = minRects[i].size.height;
+
+        // Keeps the max value as the width
+        if(w < h)
+        {
+            temp = h;
+            h = w;
+            w = temp;
+        }
+
+        // Keeps values in a vector
+        tmpValues.push_back(w);
+        tmpValues.push_back(h);
+
+        // Copie the values in a cv mat
+        samples = new cv::Mat(1,2,CV_32FC1,tmpValues.data());
+        tmpValues.clear(); // Clear the temp vector
+
+        ids.push_back(bayes.predict(*samples)); // Predict in the classifier with the computed values
+
+        // Random color for each class
         cv::Scalar color(rng.uniform(0,255),rng.uniform(0,255),rng.uniform(0,255));
-        cv::drawContours(tmp,contours,i,color,2,8,hierarchy,0,cv::Point());
+        minRects[i].points(rect_points); // Copie the min area rect points
+
+        for( int j = 0; j < 4; j++ )
+        {
+            if(j == 0)
+            {
+                // Puts the corresponding database name in the rectangle
+                cv::putText(tmp,dbNames[ids[i]].toStdString(),rect_points[j],
+                        cv::FONT_HERSHEY_SIMPLEX,1.5,color,2);
+            }
+            // Plot each line of the rectangle
+            cv::line( tmp, rect_points[j], rect_points[(j+1)%4], color, 2, 8 );
+        }
     }
 
-    imgShow(tmp);
+    // Adds the rectangles and names to the original image
+    cv::addWeighted(tmp,1,orgImage,0.4,1,image);
+
+    // Shows the image
+    imgShow(image);
 }

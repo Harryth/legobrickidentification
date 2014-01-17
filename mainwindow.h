@@ -54,6 +54,8 @@ private:
     cv::Mat orgImage; // Original image
     cv::NormalBayesClassifier bayes; // Bayes classifier
 
+    bool bayesTrained; // Bayes already trained flag
+
     void imgShow(cv::Mat img); // Show image in GUI
     void loadDataBaseValues(std::vector<std::vector<cv::Point2f> > &values); // Load values from a data base
     void labelsTrainData(cv::Mat &trainData, cv::Mat &labels); // Calculate train data and assign labels to each class
