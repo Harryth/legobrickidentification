@@ -14,6 +14,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionExit,SIGNAL(triggered()),this,SLOT(close()));
     connect(ui->action_Train_Identifier,SIGNAL(triggered()),this,SLOT(trainIdentifier()));
     connect(ui->actionIdentify_Image,SIGNAL(triggered()),this,SLOT(identifyImage()));
+    connect(ui->action_About,SIGNAL(triggered()),this,SLOT(about()));
 
     // Default location to open images
     location = "../../Imágenes";
@@ -425,4 +426,15 @@ void MainWindow::identifyImage()
 
     // Shows the image
     imgShow(image);
+}
+
+void MainWindow::about()
+{
+    QMessageBox aboutMsgBox(this);
+
+    aboutMsgBox.setText("Versión 0.1\n\nUniversidad Nacional de Colombia\n\nTécnicas de Inteligencia Artificial\n\nFederico Acosta\nFabián Melo\nHarold Vallejo\n\n2014");
+    aboutMsgBox.setButtonText(QMessageBox::Ok,tr("Aceptar"));
+    aboutMsgBox.setWindowTitle("Acerca de...");
+    aboutMsgBox.setIconPixmap(QPixmap(":/images/images/Universidad_Nacional_de_Colombia_-_Sede_Bogota.png"));
+    aboutMsgBox.exec();
 }

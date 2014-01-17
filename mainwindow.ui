@@ -46,6 +46,7 @@
      <string>A&amp;yuda</string>
     </property>
     <addaction name="actionOpenCV_Help"/>
+    <addaction name="action_About"/>
    </widget>
    <widget class="QMenu" name="menu_Identify">
     <property name="title">
@@ -85,7 +86,7 @@
      <normaloff>:/icons/icons/edit-find.svg</normaloff>:/icons/icons/edit-find.svg</iconset>
    </property>
    <property name="text">
-    <string>OpenCV</string>
+    <string>&amp;OpenCV</string>
    </property>
   </action>
   <action name="actionExit">
@@ -129,6 +130,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+I</string>
+   </property>
+  </action>
+  <action name="action_About">
+   <property name="text">
+    <string>&amp;Acerca de...</string>
    </property>
   </action>
  </widget>

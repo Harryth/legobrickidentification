@@ -6,4 +6,7 @@
         <file>icons/edit-find.svg</file>
         <file>icons/document-save.svg</file>
     </qresource>
+    <qresource prefix="/images">
+        <file>images/Universidad_Nacional_de_Colombia_-_Sede_Bogota.png</file>
+    </qresource>
 </RCC>

@@ -38,6 +38,7 @@ private slots:
     void opencvHelp(); // Function that open a dialog to search in opencv documentation
     void trainIdentifier(); // Train the identifier
     void identifyImage(); // Identify image
+    void about(); // Program credicts
 
 private:
     Ui::MainWindow *ui;
