@@ -172,7 +172,7 @@ void MainWindow::saveImage()
                                                            tr("Archivos de Imagen (*.jpg *.jpeg *.png *.bmp)"));
         // Suported extensions
         QString fileType = ".jpg|.jpeg|.png|.bmp";
-        bool ext;
+        bool ext = false;
 
         // Search file extension in destination file name
         for(int i = 0; i < fileType.split("|").count(); i++)
@@ -203,14 +203,23 @@ void MainWindow::loadDataBaseValues(std::vector<std::vector<cv::Point2f> > &valu
 
     // Message dialog asking for a new database
     QMessageBox *msgBox = new QMessageBox;
-    msgBox->setText("Desea Añadir otra base de datos?.");
-    msgBox->setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
-    msgBox->setButtonText(QMessageBox::Ok, tr("Si"));
-    msgBox->setButtonText(QMessageBox::Cancel, tr("No"));
+    msgBox->setText("Por favor añada otra base de datos.");
+    msgBox->setStandardButtons(QMessageBox::Ok);
+    msgBox->setButtonText(QMessageBox::Ok, tr("Continuar"));
     msgBox->setWindowTitle("Añadir Base de Datos");
+
+    int count = 0;
 
     do
     {
+        if(count == 1)
+        {
+            msgBox->setText("Desea añadir otra base de datos?.");
+            msgBox->setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
+            msgBox->setButtonText(QMessageBox::Ok, tr("Si"));
+            msgBox->setButtonText(QMessageBox::Cancel, tr("No"));
+        }
+
         while(!db.isOpen())
         {
             // Open file dialog to ask for db location
@@ -267,6 +276,8 @@ void MainWindow::loadDataBaseValues(std::vector<std::vector<cv::Point2f> > &valu
             // Keeps the vector of point in a vector
             values.push_back(classValues);
             classValues.clear(); // Clear the vector of points to recieve a new class
+
+            count++;
         }
 
         // Destroy the connection
@@ -276,7 +287,7 @@ void MainWindow::loadDataBaseValues(std::vector<std::vector<cv::Point2f> > &valu
         db = QSqlDatabase();
         db.removeDatabase(conn);
 
-    }while(msgBox->exec() == QMessageBox::Ok);
+    }while(msgBox->exec() == QMessageBox::Ok || count < 2);
 }
 
 void MainWindow::labelsTrainData(cv::Mat &trainData, cv::Mat &labels)
@@ -315,7 +326,9 @@ void MainWindow::trainIdentifier()
 
     if(!labels.empty() && labels.at<float>(labels.rows-1) != 0)
         bayesTrained = bayes.train(trainData,labels);
-    ui->actionIdentify_Image->setEnabled(bayesTrained);
+
+    if(!image.empty())
+        ui->actionIdentify_Image->setEnabled(bayesTrained);
 }
 
 void MainWindow::identifyImage()
@@ -411,11 +424,9 @@ void MainWindow::identifyImage()
         for( int j = 0; j < 4; j++ )
         {
             if(j == 0)
-            {
                 // Puts the corresponding database name in the rectangle
                 cv::putText(tmp,dbNames[ids[i]].toStdString(),rect_points[j],
                         cv::FONT_HERSHEY_SIMPLEX,1.5,color,2);
-            }
             // Plot each line of the rectangle
             cv::line( tmp, rect_points[j], rect_points[(j+1)%4], color, 2, 8 );
         }
@@ -426,13 +437,69 @@ void MainWindow::identifyImage()
 
     // Shows the image
     imgShow(image);
+
+    std::vector<float>::iterator it; // Iterator to go over each element in ids vector
+    std::vector<QString> missing; // Keeps each missing block id
+    std::vector<float> repeated; // Keeps each repeated block id
+
+    // Find for missing blocks in the data base names loaded
+    for(unsigned int i = 0; i < dbNames.size(); i++)
+    {
+        // FInd in the ids vector
+        it = std::find(ids.begin(),ids.end(),i);
+
+        // If no match, keeps the missing db name
+        if(it == ids.end())
+            missing.push_back(dbNames[i]);
+        else // If match erase and re-find, in case of match, keeps id
+        {
+            ids.erase(it);
+            it = std::find(ids.begin(),ids.end(),i);
+            if(it != ids.end())
+                repeated.push_back(*it);
+        }
+    }
+
+    // In case of missing block shows a message box
+    if(!missing.empty())
+    {
+        QString *missingStr = new QString("Hay algunas fichas faltantes:\n\n");
+        QMessageBox *msgBox = new QMessageBox;
+        msgBox->setStandardButtons(QMessageBox::Ok);
+        msgBox->setButtonText(QMessageBox::Ok, tr("Continuar"));
+        msgBox->setWindowTitle("Faltan Fichas");
+        msgBox->setIcon(QMessageBox::Critical);
+
+        for(unsigned int i = 0; i < missing.size(); i++)
+            missingStr->append("Falta: ").append(missing[i]).append("\n");
+
+        msgBox->setText(*missingStr);
+        msgBox->exec();
+    }
+
+    // In case of repeated block shows a message box
+    if(!repeated.empty())
+    {
+        QString *repeatedStr = new QString("Hay algunas fichas repetidas:\n\n");
+        QMessageBox *msgBox = new QMessageBox;
+        msgBox->setStandardButtons(QMessageBox::Ok);
+        msgBox->setButtonText(QMessageBox::Ok, tr("Continuar"));
+        msgBox->setWindowTitle("Fichas Repetidas");
+        msgBox->setIcon(QMessageBox::Critical);
+
+        for(unsigned int i = 0; i < repeated.size(); i++)
+            repeatedStr->append("Repetida: ").append(dbNames[repeated[i]]).append("\n");
+
+        msgBox->setText(*repeatedStr);
+        msgBox->exec();
+    }
 }
 
 void MainWindow::about()
 {
     QMessageBox aboutMsgBox(this);
 
-    aboutMsgBox.setText("Versión 0.1\n\nUniversidad Nacional de Colombia\n\nTécnicas de Inteligencia Artificial\n\nFederico Acosta\nFabián Melo\nHarold Vallejo\n\n2014");
+    aboutMsgBox.setText("Versión 0.2\n\nUniversidad Nacional de Colombia\n\nTécnicas de Inteligencia Artificial\n\nFederico Acosta\nFabián Melo\nHarold Vallejo\n\n2014");
     aboutMsgBox.setButtonText(QMessageBox::Ok,tr("Aceptar"));
     aboutMsgBox.setWindowTitle("Acerca de...");
     aboutMsgBox.setIconPixmap(QPixmap(":/images/images/Universidad_Nacional_de_Colombia_-_Sede_Bogota.png"));
